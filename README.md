@@ -51,13 +51,13 @@ For the policy_test.py script to run successfully, you must first [run the UE4Ed
 
 ## Loading scene into Unreal Engine
 
-The following video provides a concrete example of importing 3rd party environments in Unreal Engine for AirSim: https://www.youtube.com/watch?v=oR-LXzWENYg. A mesh can be imported for each of the scenes in the Dataset (for example: /ACL-Synthetic/C03/mesh/scene_mesh_lowres.obj). 
+Several [examples](https://www.youtube.com/watch?v=oR-LXzWENYg) can be found which illustrate the importing of 3rd party environments in Unreal Engine for AirSim. A mesh can be imported for each of the scenes in the Dataset. For example, the mesh for scene C03 can be found /C03/mesh/scene_mesh_lowres.obj once in the ACL-Synthetic directory. 
 
-### Scene scaling and coordinate system alignment
+### Adjustments
 
-The scene should be scaled by 100 along each axis, and the transformation variables (translation and rotation) should be set to 0. This should lead to the global coordinate system in UE4 and the local coordinate system attached to the imported mesh coinciding in position. Unreal Engine uses a left handed coordinate system, and AirSim along with AccurateACL use a right handed coordinate system. Additionally, these three coordinate systems are rotated relative to eachother and rotations are expressed in different ways for each. Accommodations for these differences were made in the code. Additionally, the above scaling will lead to 1 unit in Unreal Engine corresponding to 1 meter - the units AccurateACL uses. 
+The scene should be scaled by 100 along each axis, and the transformation variables (translation and rotation) should be set to 0. The former leads to 1 unit in Unreal Engine corresponding to 1 meter (the unit of displament used in the code) and the latter to the alignment of the global coordinate system in UE4 and the local coordinate system attached to the imported mesh. Accommodations for differences in coordinate systems and 6-DoF transformation conventions in Unreal Engine, AirSim and AccurateACL are made in policy_test.py. 
 
-## Bibtex
+## Bibtex for the relevant paper
 ```bibtex
 @article{fang2022towards,
   title={Towards Accurate Active Camera Localization},
@@ -67,19 +67,15 @@ The scene should be scaled by 100 along each axis, and the transformation variab
 }
 ```
 
-
 ## Contact
-For any questions, feel free to contact the authors.
+For any questions, feel free to contact us.
+
+Spyros Poullados: [spoullados@ethz.ch](mailto:spoullados@ethz.ch)
+
+Julia Chen: [jiaqchen@ethz.ch](mailto:jiaqchen@ethz.ch)
+
+Siyan Dong: [siyan.dong@inf.ethz.ch](mailto:siyan.dong@inf.ethz.ch)
 
 [Qihang Fang](https://qhfang.github.io/): [qihfang@gmail.com](mailto:qihfang@gmail.com)
 
-[Yingda Yin](https://yd-yin.github.io/): [yingda.yin@gmail.com](mailto:yingda.yin@gmail.com)
-
-[Qingnan Fan](https://fqnchina.github.io/): [fqnchina@gmail.com](mailto:fqnchina@gmail.com)
-
-
-## Acknowledgments
-This work was supported in part by NSFC Projects of International Cooperation and Exchanges (62161146002), NSF grant IIS-1763268, a Vannevar Bush Faculty Fellowship, and a gift from the Amazon Research Awards program.
-
-Our RL framework is based on [RLPYT](https://github.com/astooke/rlpyt) by [Adam Stooke](https://www.linkedin.com/in/adam-stooke-06bb6923/) et al. and the passive relocalizer module is based on [spaint](https://github.com/torrvision/spaint) by [Stuart Golodetz](http://research.gxstudios.net/) et al.
 
