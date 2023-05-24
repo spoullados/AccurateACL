@@ -4,6 +4,7 @@
 
 *Equal contribution; ordered alphabetically | †Corresponding authors | [Video](https://youtu.be/pDMoZ6pjkkQ) | [arXiv](https://arxiv.org/abs/2012.04263)
 
+*Spyros Poullados 
 
 <p align="center">
 <img src="./images/turn_and_long.gif" alt="demonstration" width="85%">
