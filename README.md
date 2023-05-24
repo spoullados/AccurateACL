@@ -29,8 +29,8 @@ In order to have the versatility to use unreal_airsim, UE 4.25 is the recommende
 
 AirSim can be installed as done for unreal_airsim. Details can be found in the following link: https://github.com/ethz-asl/unreal_airsim
 
-### Dataset
-#### ACL-Synthetic and ACL-Real
+## Dataset
+### ACL-Synthetic and ACL-Real
 <p>
 In the paper, we evaluate our algorithm on the ACL-Synthetic and ACL-Real datasets.
 
@@ -43,7 +43,7 @@ In the paper, we evaluate our algorithm on the ACL-Synthetic and ACL-Real datase
 The ACL-Synthetic and ACL-Real datasets can be downloaded <a href="https://drive.google.com/file/d/1OIKUeQDfdNuxwyTlXP3KpJyk4p-Nsyjn/view?usp=sharing">here</a>.
 </p>
 
-#### ACL-Origin
+### ACL-Origin
 <p>
 We further collect 120 high-quality indoor scenes. For each scene, we provide a .max format file which contains 3D models for all the furnitures with textures, and lighting effects, shading, and other 3D design elements.
 
@@ -60,94 +60,30 @@ https://user-images.githubusercontent.com/25958029/208108052-d946b8d2-b430-40b1-
 The ACL-Origin datasets can be downloaded <a href="https://1drv.ms/u/s!Al4DaYqDq4-33STwLq83BAwxM6j2?e=m29Glv">here</a>.
 </p>
 
-### Passive localizer (random forest)
-#### From docker image
+## Passive localizer (random forest)
+
 The docker image contains a proper environment for the random forest. Run the following command to use the image.
 ```bash
-docker pull qihfang/spaint_python3.6.8_cuda10.0_torch1.9.0_spaint:v1.0
+docker pull qihfang/spaint_python3.6.8_cuda10.0_torch1.9.0_spaint:v1.1
+```
+Note: for those who want to compile from source, instructions can be found in the gitub repository for AccurateACL
+
+### Mount local directories and files to your container
+
+```bash
+docker run --rm --runtime=nvidia --gpus all -it -v /local/home/spoullados/Desktop/:/local/Desktop -v /local/home/spoullados/Downloads/:/local/Downloads qihfang/spaint_python3.6.8_cuda10.0_torch1.9.0_spaint:v1.1 bash
 ```
 
-#### Compile from source
-1. Dependencies
-    ```bash
-      - ArrayFire (version 3.3.2)
-        Status: Optional (needed for touch interaction and median filtering)
-        Default: Disabled
-        Flag: WITH_ARRAYFIRE
-    
-      - Boost (version 1.58.0)
-        Status: Required
-    
-      - CUDA (version 7.5 or above)
-        Status: Optional (needed for GPU acceleration)
-        Default: Enabled
-        Flag: WITH_CUDA
-    
-      - Eigen (version 3.2.2)
-        Status: Required
-    
-      - GLEW (version 1.12.0)
-        Status: Required on Windows/Ubuntu
-    
-      - InfiniTAM (version 3.5)
-        Status: Required
-    
-      - Leap Motion SDK (version 2.2.1.24116)
-        Status: Optional (needed for experimental Leap Motion support)
-        Default: Disabled
-        Flag: WITH_LEAP
-    
-      - Oculus SDK (version 0.5.0.1)
-        Status: Optional (needed for Oculus Rift support)
-        Default: Disabled
-        Flag: WITH_OVR
-    
-      - OpenCV (version 3.1.0)
-        Status: Optional (needed for feature inspection mode)
-        Default: Disabled
-        Flag: WITH_OPENCV
-    
-      - OpenGL
-        Status: Required
-    
-      - OpenMP
-        Status: Optional, but recommended (needed for faster training/prediction)
-        Default: Disabled
-        Flag: WITH_OPENMP
-        Notes: Doesn't work on Mac OS X
-    
-      - OpenNI (version 2)
-        Status: Optional, but recommended (needed for live reconstruction)
-        Default: Disabled
-        Flag: WITH_OPENNI
-    
-      - SDL (version 2-2.0.7)
-        Status: Required
-    
-      - Vicon SDK
-        Status: Optional (needed for the Vicon tracker)
-        Default: Disabled
-        Flag: WITH_VICON
-    ```
-2. Build ALGLIB
-    ```bash
-    cd extensions/spaint/libraries
-    ./build-alglib-nix.sh
-    ```
-3. Build
-
-    Please make sure that the BUILD_GROVE, BUILD_GROVE_APPS, WITH_ALGLIB and WITH_OPENCV are set to ON and the ALGLIB_INCLUDE_DIR, ALGLIB_LIBRARY and ALGLIB_ROOT are set to your path.
-    ```bash
-    cd ..
-    ./build-nix.sh "Unix Makefiles" Release
-    cd build
-    ccmake ..
-    make -j8
-    ```
-
-### Config paths
+### Configure paths
 Please specify the paths in `global_setting.py` to your paths.
 
+### Install packages within container
+
+Within the AccurateACL directory mounted in the container:
+```bash
+pip  install -e extensions/gym-foo -e extensions/rlpyt msgpack-rpc-python 
+```
+## Loading scene into Unreal Engine
 
 ## Usage
 ### Train
