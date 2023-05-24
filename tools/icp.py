@@ -41,6 +41,7 @@ def execute_color_registration(source, target):
     return utils.rt_err(np.identity(4), current_transformation)
 
 def worker(filepath):
+
     os.remove(os.path.join(filepath, 'ready.txt'))
     color1 = o3d.io.read_image(os.path.join(filepath, 'source_color.png'))
     depth1 = o3d.io.read_image(os.path.join(filepath, 'source_depth.png'))
@@ -85,3 +86,4 @@ if __name__ == "__main__":
     while True:
         if os.path.exists(os.path.join(filepath, 'ready.txt')):
             worker(filepath)
+

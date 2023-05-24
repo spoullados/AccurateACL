@@ -30,10 +30,12 @@ import multiprocessing as mp
 from sklearn.neighbors import NearestNeighbors  
 import torch
 
+#This is a custom environment for relocation tasks inheriting from the gym.Env class (EnvReloc is a subclass and gym.Env a superclass)
 class EnvReloc(gym.Env):
     """ A clean environment """
-    def __init__(self, name, scene_names, dynamic, seq_names, noise_std, step_size, angle_size, success_reward, color_jitter, n_hyp, wocollide=False, finish_condition=5, worker_id=0, scene_idx=0, cpp_cuda=0, render_cuda=0, fixed_pose=False, use_cuda=False):
-        super(EnvReloc, self).__init__()        
+    def __init__(self, name, scene_names, dynamic, seq_names, noise_std, step_size, angle_size, success_reward, color_jitter, n_hyp, wocollide=False, finish_condition=5, worker_id=0, scene_idx=0, cpp_cuda=0, render_cuda=0, fixed_pose=False, use_cuda=True):
+        super(EnvReloc, self).__init__()  #inherit attributes and methods of gym.Env    
+        #check if scene index is within the range of the scene_names list
         assert scene_idx < len(scene_names), f"scene_idx {scene_idx} out of range of scene_names {scene_names}"
         scene_name = scene_names[scene_idx]
         if '-' in scene_name:
@@ -65,6 +67,7 @@ class EnvReloc(gym.Env):
         self.finish = [finish_condition, finish_condition]
         self.n_hyp = n_hyp
         print(f'\n{n_hyp} hypos\n')
+        #The minimum and maximum values for x, y, and rotation (rz) are read from a file and stored as instance variables.
         with open(join(self.scene_dir, 'boundary.txt'), 'r') as f:
             self.x_min = float(f.readline().strip())
             self.x_max = float(f.readline().strip())
@@ -73,6 +76,7 @@ class EnvReloc(gym.Env):
         self.rz_min, self.rz_max = 0, 2 * np.pi - 1e-4
 
         self.exclusion = False
+        #check if an exclusion file exists in the scene directory and assign exclusion values if it does. The exclusion values define a restricted area within the environment.
         if os.path.exists(join(self.scene_dir, 'exclusion.txt')):
             self.exclusion = True
             print('\nAssign exclusion\n')
@@ -84,11 +88,12 @@ class EnvReloc(gym.Env):
 
         self.n_action = 3
         self.action_space = spaces.Discrete(self.n_action)
-        self.success_reward = success_reward
-        self.color_jitter = color_jitter
-        self.print_color_jitter = True if self.color_jitter else False
+        self.success_reward = success_reward #for successful action
+        self.color_jitter = color_jitter #specifies whether color jittering is enabled or not.
+        self.print_color_jitter = True if self.color_jitter else False #sets print_color_jitter to True if color_jitter is enabled, otherwise sets it to False.
         self.pre_var = 0
 
+        #lower and upper bounds for the observation space by repeating the minimum and maximum values for each variable (x, y, z, roll, pitch, yaw) based on the number of hypotheses (self.n_hyp).
         self.x_bound = [self.x_min - 2, self.x_max + 2]
         self.y_bound = [self.y_min - 2, self.y_max + 2]
         self.z_bound = [0, 2]
@@ -97,13 +102,23 @@ class EnvReloc(gym.Env):
                                     0, 0, 0], np.float32), (self.n_hyp, 1))
         obs_high = np.tile(np.array([self.x_bound[1], self.y_bound[1], self.z_bound[1],
                                      2 * np.pi, 2 * np.pi, 2 * np.pi], np.float32), (self.n_hyp, 1))
+        #sets the observation space as a Box space defined by obs_low and obs_high
         self.observation_space = spaces.Box(low=obs_low, high=obs_high)
+        #loads the traversable map from an image file
         self.traversable_map = cv2.imread(join(self.mesh_dir, 'floor_trav_0_connected.png'), -1)
         with open(join(self.mesh_dir, 'floor_trav_0.yaml'), 'r') as y:
             data = yaml.safe_load(y)
         origin = data['origin']
+        #line checks if the origin values in the floorplan YAML file are equal
         assert origin[0] == origin[1], "[floorplan yaml] origin[0] != origin[1]"
-        self.ori = origin[0]
+        self.ori = origin[0] #equal to -9
+
+        #SHould get -9, -9 here - gives 900,900 i.e. image coordinates
+        #print('DAME:', utils.blcam2travxy(self.ori, 0, 0))
+        #reverse - gives 0,0
+        #print('DAME:', utils.travxy2blcam(self.ori, 0, 1800))
+        #conclusion, the origin of the scene is the center of the image
+
 
         self.wocollide = wocollide
 
@@ -112,19 +127,24 @@ class EnvReloc(gym.Env):
         self.worker_id = worker_id
 
         # Online relocalizer
-        time_id = datetime.datetime.today().strftime('%m%d_%H%M%S_%f')
-        randid = np.random.randint(0, 100000)
-        rf_path_name = 'multiple_envs' if '#' in name else name
-        self.rf_path = join(self.scene_dir, 'rf_path', rf_path_name, f'{worker_id}_{time_id}_{randid}')
+        time_id = datetime.datetime.today().strftime('%m%d_%H%M%S_%f') #generates a timestamp string based on the current date and time.
+        randid = np.random.randint(0, 100000) #generates a random integer for appending to the relocalization path.
+        rf_path_name = 'multiple_envs' if '#' in name else name # set to 'multiple_envs' if the environment name contains the character '#', otherwise it is set to the environment name.
+        self.rf_path = join(self.scene_dir, 'rf_path', rf_path_name, f'{worker_id}_{time_id}_{randid}') #onstructed by joining the scene directory, 'rf_path', and rf_path_name, along with the worker ID, timestamp, and random ID.
+        #If the length of self.rf_path exceeds 170 characters, it is redefined with the scene directory, 'rf_path', 'longpath', worker ID, and timestamp (truncated)
         if len(self.rf_path) > 170:
             self.rf_path = join(self.scene_dir, 'rf_path', 'longpath', f'{worker_id}_{time_id}')
+        #If the relocalization path already exists, it is removed.
         if osp.exists(self.rf_path):
             print(f'Remove existed rf path {self.rf_path}')
             shutil.rmtree(self.rf_path)
+        #The relocalization path directory is created.
         os.makedirs(self.rf_path, exist_ok=True)
         # self.cpp_model = seq_name.replace('-3dof', '')
+        #set to seq_name, which represents the sequence name associated with the relocalizer model.
         self.cpp_model = seq_name
         model_path = self.scene_dir
+        #command string that specifies the configuration and execution of the relocalizer. It includes CUDA visibility settings, the path to the relocalizer executable, camera intrinsic configuration, relocalization test settings, model path, and the relocalizer model to be used.
         relocalizer_cmd = f'CUDA_VISIBLE_DEVICES={cpp_cuda} ' \
             f'{gls.reloc_root}/build/bin/apps/relocgui/relocgui ' \
             f'-c {self.scene_dir}/intrinsic.txt ' \
@@ -132,40 +152,53 @@ class EnvReloc(gym.Env):
             f'--model_path {join(model_path, "cpp_model")} ' \
             f'--model {self.cpp_model} ' \
             f'--phase test4rl'
+        #starts the relocalizer as a subprocess using subprocess.Popen and passes relocalizer_cmd as the command to execute.
         self.subprocess_reloc = subprocess.Popen(relocalizer_cmd, shell=True)
+        #The relocalizer process ID and the relocalizer command are printed for reference
         print(f'Start relocalizer {self.cpp_model} at pid {self.subprocess_reloc.pid}')
         print(relocalizer_cmd)
 
         self.fixed_pose = fixed_pose
+        #f fixed pose is enabled, the next index is set to -1 plus the additional number, and the pose list is loaded from a file
         if (fixed_pose):
             self.next_idx = -1 + self.add_num
             self.pose_list = np.loadtxt(os.path.join(gls.data_root, f'{scene_name}.txt'))
-        # Mesh renderer
-        self.mesh_path = join(self.mesh_dir, 'scene_mesh_lowres.obj')
+        # Mesh renderer - used to render the environment's mesh for visualization and perception purposes.
+        self.mesh_path = join(self.mesh_dir, 'scene_mesh_lowres.obj') #defined by joining the mesh directory (self.mesh_dir) and the filename 'scene_mesh_lowres.obj'. This specifies the path to the mesh file to be rendered.
+        #Module taking as input the mesh path (self.mesh_path), camera intrinsic parameters (self.intrinsic), image height and width (self.img_h and self.img_w), and an optional CUDA index for GPU acceleration (cuda_idx=render_cuda)
         self.mesh_renderer = igibson_mesh_renderer.init_mesh_renderer(self.mesh_path, self.intrinsic, self.img_h, self.img_w, cuda_idx=render_cuda)
 
-        self.noise_std = noise_std
-        if self.noise_std != 0:
+        #injection of noise during movement steps
+        self.noise_std = noise_std #standard deviation of the noise
+        if self.noise_std != 0: #indicating that noise injection is desired
             print(f"\nMove step noise injection: std={self.noise_std}\n")
 
+    # reset the environment to its initial state
     def reset(self):
+        #selects the next camera pose from the self.pose_list based on the self.next_idx index. 
         if self.fixed_pose:
             if self.next_idx < 0 + self.add_num:
                 self.true_cam = self.pose_list[0]
             else:
                 self.true_cam = self.pose_list[self.next_idx]
             self.next_idx += 1
+            #It then relocalizes the camera to the selected pose, sets the state variable, and returns a copy of the state.
             state = self.relocalize(self.true_cam)
             self.state = state
             return self.state.copy()
         state = np.nan
         collide = True
         exclusion = True
+        #generates a random camera pose within the specified ranges (self.x_min, self.x_max, self.y_min, self.y_max, self.rz_min, self.rz_max). 
         while np.isnan(state).any() or collide or exclusion:
             x = self.np_random.uniform(self.x_min, self.x_max)
             y = self.np_random.uniform(self.y_min, self.y_max)
             rz = self.np_random.uniform(self.rz_min, self.rz_max)
             self.true_cam = np.array([x, y, 1, np.pi / 2, 0, rz])
+
+            #added for clarity
+
+            #It relocalizes the camera to the generated pose and checks for collisions and exclusions. It continues generating new poses until a valid one is found. Finally, it sets the state variable and returns a copy of the state.
             state = self.relocalize(self.true_cam)
             collide = self.collide()
             exclusion = self.init_exclusion()
@@ -173,6 +206,8 @@ class EnvReloc(gym.Env):
         self.hypo = state
         return self.state.copy()
 
+
+    #imilar to reset(self), but it allows the environment to be reset to a specific camera pose provided as the start_pos argument. It relocalizes the camera to the specified pose, sets the state variable, and returns a copy of the state.
     def reset_assign(self, start_pos):
         self.true_cam = np.asarray(start_pos)
         state = self.relocalize(self.true_cam)
@@ -180,8 +215,10 @@ class EnvReloc(gym.Env):
         self.hypo = state
         return self.state.copy()
 
+    #advance the environment by one step given an action
     def step(self, action):
         err_msg = "%r (%s) invalid" % (action, type(action))
+        #checks if the action is valid based on the self.action_space constraints.
         assert self.action_space.contains(action), err_msg
         cam_success = False
         success = False
@@ -189,14 +226,17 @@ class EnvReloc(gym.Env):
         outbounds = False
         getnan = False
         # get to a new place
-        step_noise = np.clip(np.random.normal(0, self.noise_std), -2 * self.noise_std, 2 * self.noise_std)
+        step_noise = np.clip(np.random.normal(0, self.noise_std), -2 * self.noise_std, 2 * self.noise_std) #introduces noise to the step and rotation actions.
         rz_noise = np.clip(np.random.normal(0, 2 * self.noise_std), -2 * 2 * self.noise_std, 2 * 2 * self.noise_std)
         self.step_noise = step_noise
         self.rz_noise = rz_noise
         # move forward: x: -sin(rz), y: cos(rz)
 
-        tmp_cam = self.true_cam.copy()        
+        tmp_cam = self.true_cam.copy()   
+        #print('Before step Collision:', self.collide_cam(tmp_cam))
+        #print(self.dist, step_noise)
 
+        # calculates the new camera pose (tmp_cam) based on the selected action.  
         if action == 0:
             tmp_cam[0] -= (self.dist + step_noise) * np.sin(tmp_cam[5])
             tmp_cam[1] += (self.dist + step_noise) * np.cos(tmp_cam[5])
@@ -212,8 +252,9 @@ class EnvReloc(gym.Env):
         # ## results:
         # ## out of bounds / no prediction / succeed / cam_succeed
         # out-of-bounds detection
+        #print('After step Collision:', self.collide_cam(tmp_cam))
         if self.collide_cam(tmp_cam):
-            reward = -self.success_reward
+            reward = -self.success_reward #If the new camera pose leads to a collision with the environment, it sets the reward to a negative value and updates the done flag accordingly.
             if not self.wocollide:
                 done = True
             else:
@@ -224,7 +265,7 @@ class EnvReloc(gym.Env):
             self.true_cam = tmp_cam
             state = self.relocalize(self.true_cam)
             self.state = state
-            if np.isnan(state).any():
+            if np.isnan(state).any(): #returns nan values
                 # if the relocalizer fails to give predictions, end the episode
                 if not self.wocollide:
                     reward = -self.success_reward
@@ -232,11 +273,11 @@ class EnvReloc(gym.Env):
                 else:
                     reward = -self.time_punish
                 getnan = True
-            else:
+            else: #relocalizer provides predictions
                 # Use `state`
                 # `state` will always be hypos, `self.state` may be different in different envs
                 s = self.cam_succeed(state)
-                if s:
+                if s: #checks if the camera has successfully reached the desired state (based on the self.finish criteria
                     if not self.wocollide:
                         reward = self.success_reward
                     else:
@@ -245,7 +286,7 @@ class EnvReloc(gym.Env):
                     cam_success = True
                 else:
                     reward = -self.time_punish
-                if self.succeed(state[0], self.true_cam):
+                if self.succeed(state[0], self.true_cam): #checks if the state is successful based on the first hypothesis and the true camera pose.
                     success = True
 
 
@@ -256,6 +297,7 @@ class EnvReloc(gym.Env):
         self.np_random, seed = seeding.np_random(seed)
         return [seed]
 
+    #clean up and terminate the environment. It terminates the subprocess associated with the relocalizer, releases the mesh renderer, and prints a termination message.
     def close(self):
         pobj = psutil.Process(self.subprocess_reloc.pid)
         for c in pobj.children(recursive=True):
@@ -264,6 +306,7 @@ class EnvReloc(gym.Env):
 
         self.mesh_renderer.release()
 
+    #elocalizing the camera based on the given blcam (blender camera) pose
     def relocalize(self, blcam):
         """
         :param blcam: current blcam
@@ -278,6 +321,7 @@ class EnvReloc(gym.Env):
         np.savetxt(join(self.rf_path, '000000_pose.txt'), np.eye(4))
 
         state = np.zeros((0, 6), np.float32)
+        #Writes the path to the depth image in a file called query.txt and writes "I am ready" in a file called ready.txt.
         with open(join(self.rf_path, 'query.txt'), 'w') as f:
             f.write(join(self.rf_path, '000000_depth.png'))
         with open(join(self.rf_path, 'ready.txt'), 'w') as f:
@@ -285,38 +329,50 @@ class EnvReloc(gym.Env):
         # Wait until the cpp relocalizer finishes running and remove the datalist file.
         while os.path.exists(join(self.rf_path, 'ready.txt')):
             pass
+        #For each hypothesis, it loads the pose from a file (pose-i.txt) and converts it to blender-format camera pose (blcam).
         for i in range(self.n_hyp):
             pose = np.loadtxt(join(self.rf_path, f'pose-{i}.txt'), delimiter=',')
             blcam = utils.pose2blcam(pose)
-            state = np.vstack((state, blcam[np.newaxis]))
+            state = np.vstack((state, blcam[np.newaxis])) #Appends the blcam to the state array.
         self.hypo = state
         return state
 
+    #check if the predicted camera pose (pred_blcam) is considered a success based on the ground truth camera pose (gt_blcam)
     def succeed(self, pred_blcam, gt_blcam):
         pred_pose = utils.blcam2pose(pred_blcam)
         gt_pose = utils.blcam2pose(gt_blcam)
-        r_err, t_err = utils.rt_err(pred_pose, gt_pose)
+        r_err, t_err = utils.rt_err(pred_pose, gt_pose) #calculates the rotation and translation errors between the two poses using the utils.rt_err function
         self.err = [r_err, t_err]
 
+        #f both errors are below the specified thresholds (self.finish), it returns True, indicating success. Otherwise, it returns False.
         if r_err < self.finish[0] and t_err < self.finish[1]:
             return True
         else:
             return False
 
+    #determines if the predicted camera pose (pred_blcam) is considered a success based on the variability of the pose
     def cam_succeed(self, pred_blcam):
         var = np.var(pred_blcam, axis=0)
         var = var.mean()
+        #ariance of the pose elements and if it is below a specified threshold (self.var_th), it returns True along with the calculated variance. Otherwise, it returns False along with the variance.
         if var < self.var_th:
             return True, var
         else:
             return False, var
 
+
+    #Checks if the current camera pose (self.true_cam) collides with the environment by mapping the camera position to the traversability map
     def collide(self):
+        #converts the camera position to the corresponding map indices, retrieves the traversability value at those indices, and checks if it is equal to 0 (indicating collision) or 1 (indicating non-collision).
+        #print('TRUE CAM:',self.true_cam)
         trav_xy = utils.blcam2travxy(self.ori, self.true_cam[0], self.true_cam[1])
+        #print('trav_xy:', trav_xy)
         trav_value = self.traversable_map[trav_xy] / 255
+        #print(trav_value)
         assert trav_value == 0 or trav_value == 1
         return False if trav_value else True
 
+    #Similar to collide(self), but it takes a camera pose (cam) as input instead of using the self.true_cam pose.
     def collide_cam(self, cam):
         trav_xy = utils.blcam2travxy(self.ori, cam[0], cam[1])
         trav_xy = [trav_xy[0], trav_xy[1]]
@@ -331,26 +387,33 @@ class EnvReloc(gym.Env):
         trav_value = self.traversable_map[trav_xy[0], trav_xy[1]] / 255
         assert trav_value == 0 or trav_value == 1
         return False if trav_value else True
-
+    
+    #checks if the starting camera pose (self.true_cam) is in a valid position in the environment
     def check_start_pose(self):
+        #maps the camera position to the special map and checks the traversability value at that position
         trav_xy = utils.blcam2travxy(self.ori, self.true_cam[0], self.true_cam[1])
         trav_value = self.special_map[trav_xy] / 255
         assert trav_value == 0 or trav_value == 1
+        #If it is equal to 0 (indicating collision), it returns False, indicating an invalid starting pose. Otherwise, it returns True.
         return False if trav_value else True
 
+    #Checks if the current camera pose (self.true_cam) is within the exclusion range specified by self.ex_x_min, self.ex_x_max, self.ex_y_min, and self.ex_y_max
     def init_exclusion(self):
+        #If the camera pose falls within the exclusion range, it returns True, indicating exclusion. Otherwise, it returns False.
         if not self.exclusion:
             return False
         exclusion = self.ex_x_min < self.true_cam[0] < self.ex_x_max and \
             self.ex_y_min < self.true_cam[1] < self.ex_y_max
         return exclusion
-
+    #Calculates the indices of the camera pose (blcam) in the discretized state space. 
+    #calculates the indices for the x, y, and rotation elements of the pose based on the minimum values (self.x_min, self.y_min, self.rz_min), the step size (self.dist, self.rz_dist), and the pose values.
     def cam_idx_loc(self, blcam):
         x_id = (blcam[0] - self.x_min) / self.dist
         y_id = (blcam[1] - self.y_min) / self.dist
         rz_id = (blcam[5] - self.rz_min) / self.rz_dist
         return x_id, y_id, rz_id
 
+    #Simulates the effect of taking a particular action without modifying the actual environment state
     def try_action(self, action):
         def temp_outbound():
             if temp_cam[0] < self.x_min or temp_cam[0] >= self.x_max:
@@ -363,13 +426,17 @@ class EnvReloc(gym.Env):
                 return False
 
         temp_state = np.zeros((self.n_hyp, 6)) * np.nan
-        temp_cam = self.true_cam.copy()
+        temp_cam = self.true_cam.copy() # copy of the current camera pose (self.true_cam)
 
         # get to a new place
+
+        #Sets the step noise and rotation noise by sampling from a normal distribution
         step_noise = np.clip(np.random.normal(0, self.noise_std), -0.1, 0.1)
+
+        #Modifies the temp_cam based on the selected action
         # move forward: x -= sin(rz), y += cos(rz)
         if action == 0:
-            temp_cam[0] -= (self.dist + step_noise) * np.sin(temp_cam[5])
+            temp_cam[0] -= (self.dist + step_noise) * np.sin(temp_cam[5]) #temp_cam[5] represents the orientation of the camera
             temp_cam[1] += (self.dist + step_noise) * np.cos(temp_cam[5])
         # turn left
         elif action == 1:
@@ -380,19 +447,21 @@ class EnvReloc(gym.Env):
         # wrap angles always in range [0, 2pi)
         temp_cam[5] %= (2 * np.pi)
 
-        # out-bound detection
+        # out-bound detection:Checks if the modified camera pose is out of bounds by calling the temp_outbound() function, which compares the updated temp_cam with the predefined boundaries (self.x_min, self.x_max, self.y_min, self.y_max, self.rz_min, self.rz_max).
         if temp_outbound():
-            return temp_state
+            return temp_state #If the modified camera pose is out of bounds, it returns the temp_state array (which will be empty).
         else:
             # get new predictions
-            temp_state = self.relocalize(temp_cam)
+            temp_state = self.relocalize(temp_cam) #obtain the relocalization predictions for that pose, and assigns the result to temp_state.
             return temp_state
 
 class EnvRelocUncertainty(EnvReloc):
-    def __init__(self, name, scene_names, dynamic, seq_names, noise_std, step_size, angle_size, success_reward, color_jitter, n_hyp, wocollide=False, finish_condition=5, worker_id=0, scene_idx=0,  cpp_cuda=0, render_cuda=0, fixed_pose=False, use_cuda=False):
+    def __init__(self, name, scene_names, dynamic, seq_names, noise_std, step_size, angle_size, success_reward, color_jitter, n_hyp, wocollide=False, finish_condition=5, worker_id=0, scene_idx=0,  cpp_cuda=0, render_cuda=0, fixed_pose=False, use_cuda=True):
+        #calls the constructor of the base class using super() to initialize the inherited attributes.
         super(EnvRelocUncertainty, self).__init__(name, scene_names, dynamic, seq_names, noise_std, step_size, angle_size, success_reward, color_jitter, n_hyp, wocollide, finish_condition, worker_id, scene_idx, cpp_cuda, render_cuda, fixed_pose, use_cuda)
         self.state_channel = 73
         self.img_size = 64
+        #low and high boundaries of the observation space
         obs_low = -255 * np.ones((self.img_size, self.img_size, self.state_channel), np.float32)
         obs_high = 255 * np.ones((self.img_size, self.img_size, self.state_channel), np.float32)
         self.observation_space = spaces.Box(low=obs_low, high=obs_high)
@@ -447,6 +516,7 @@ class EnvRelocUncertainty(EnvReloc):
         # build the 2d occupancy map to calculate the exploration loss
         self.occupancy_map = np.zeros((self.traversable_map.shape[0] * 2 // 40, self.traversable_map.shape[1] * 2 // 40))
 
+    #reset the environment to its initial state
     def reset(self):
         state = super(EnvRelocUncertainty, self).reset()
 
@@ -690,8 +760,8 @@ class EnvRelocUncertainty(EnvReloc):
             cv2.imwrite(join(self.icp_path, 'source_color.png'), self.cur_color.astype(np.uint8))
             cv2.imwrite(join(self.icp_path, 'source_depth.png'), self.cur_depth.astype(np.uint16))
 
-        resize_img_size = Resize([self.img_size, self.img_size])
-        resize_256 = Resize([256, 256])
+        resize_img_size = tfs.Resize([self.img_size, self.img_size])
+        resize_256 = tfs.Resize([256, 256])
 
         d = self.cur_depth.astype(np.float32) / 1e3 # depth as meters
         d = torch.from_numpy(d).to('cuda')

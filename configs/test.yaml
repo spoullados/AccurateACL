@@ -1,6 +1,6 @@
 dynamic: False
-noise_std: 5
-step_size: 20
+noise_std: 0.05
+step_size: 0.2
 angle_size: 30
 success_reward: 0
 color_jitter: True

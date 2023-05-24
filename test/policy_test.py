@@ -18,6 +18,18 @@ import subprocess
 import yaml
 
 ###
+#Airsim packages
+import setup_path
+import airsim
+
+import pprint
+import os
+import time
+import math
+import tempfile
+###
+
+###
 # test one scene with a given setting
 ###
 
@@ -45,12 +57,18 @@ def jet_to_number(colormap, image):
 
 
 def test(exp_name, num_episodes, cuda_idx, scene_name, seq_name, pretrained_model, net_type, env, vistxt, mode, cfg):
-    os.makedirs(osp.join(gls.codes_root, 'vis', mode, scene_name), exist_ok=True)
+
+    
+    #airsim setup
+    client = airsim.VehicleClient("129.132.105.188")
+    client.confirmConnection()
+
+    os.makedirs(osp.join(gls.codes_root, 'vis', mode, scene_name), exist_ok=True) 
     env = 'gym_foo:' + env
     exp_name = f'{scene_name}_{seq_name}_' + exp_name
     cfg['scene_names'] = [scene_name]
     cfg['seq_names'] = [seq_name]
-    cfg['fixed_pose'] = True
+    cfg['fixed_pose'] = False #Changed from True    
     env = gym_make(env, **cfg, name=exp_name, scene_idx=0, cpp_cuda=cuda_idx, render_cuda=cuda_idx)
 
     assert env is not None, \
@@ -67,12 +85,22 @@ def test(exp_name, num_episodes, cuda_idx, scene_name, seq_name, pretrained_mode
     n_succ_union = 0
     n_outbounds = 0
     n_timeout = 0
-    max_ep_len = 50
+    max_ep_len = 8
+
 
     o, r, d, ep_ret, ep_len, a = env.reset(), 0, False, 0, 0, np.array([0])
+    
+    #airsim
+    #Negative z because right hand vs left hand coordinate systems for airsim and UE
+    camera_pose = airsim.Pose(airsim.Vector3r(env.true_cam[0], -env.true_cam[1], -env.true_cam[2]), airsim.to_quaternion(env.true_cam[4], 0, -(env.true_cam[5]+math.radians(90)))) #radians
+    client.simSetCameraPose("0", camera_pose)
+    time.sleep(2)
+    print('Ground truth:',env.true_cam)
+    #print('Prediction:', env.state)
 
     if vistxt:
-        f = open(osp.join(gls.codes_root, 'vis', 'mode', scene_name, f'{n}.txt'), 'w')
+        #enter here due tpo vistxt being set to true
+        f = open(osp.join(gls.codes_root, 'vis', mode, scene_name, f'{n}.txt'), 'w')
         action_hist = []
         cam = env.true_cam
         for i in range(len(cam)):
@@ -82,6 +110,7 @@ def test(exp_name, num_episodes, cuda_idx, scene_name, seq_name, pretrained_mode
 
 
     if mode == 'rl':
+        #by default we have mode = 'rl'
         get_rl_action = load_policy(pretrained_model, env, net_type, cuda_idx, mode)
     elif mode == 'turn':
         turn_step = 0
@@ -119,6 +148,8 @@ def test(exp_name, num_episodes, cuda_idx, scene_name, seq_name, pretrained_mode
     best_err = np.array(env.motion_err).max()
     # --- Acting ---
     while n < num_episodes:
+        print(ep_len,n)
+        #print(action_hist)
         ta = time.time()
         if mode == 'none':
             d = True
@@ -145,6 +176,7 @@ def test(exp_name, num_episodes, cuda_idx, scene_name, seq_name, pretrained_mode
         else:
             if mode == 'rl':
                 a = get_rl_action(o, a, r)
+                #print('Action:', a)
             elif mode == 'random':
                 a = env.action_space.sample()
                 a = np.asarray(a)
@@ -155,9 +187,19 @@ def test(exp_name, num_episodes, cuda_idx, scene_name, seq_name, pretrained_mode
                 action_hist.append(a)
             policy_time += time.time() - ta
             tb = time.time()
-            o, r, d, info = env.step(a.squeeze())
+            #changed from a.squeeze()
+            o, r, d, info = env.step(a)
+            print('Ground truth:',env.true_cam)
+            #print('Prediction:', env.state)
+
+            #airsim
+            camera_pose = airsim.Pose(airsim.Vector3r(env.true_cam[0], -env.true_cam[1], -env.true_cam[2]), airsim.to_quaternion(env.true_cam[4], 0, -(env.true_cam[5]+math.radians(90)))) #radians
+            client.simSetCameraPose("0", camera_pose)
+            time.sleep(2)
+            
             step_time += time.time() - tb
             s = info.succ
+            #print('Success:', s)
             outbounds = info.outbounds
             timeout = info.timeout
             ep_ret += r
@@ -171,7 +213,6 @@ def test(exp_name, num_episodes, cuda_idx, scene_name, seq_name, pretrained_mode
                 f.write(str(cam[i]))
                 f.write(' ')
             f.write('0\n')
-
 
         if d or (ep_len == max_ep_len):
             # * to end an episode
@@ -216,7 +257,7 @@ def test(exp_name, num_episodes, cuda_idx, scene_name, seq_name, pretrained_mode
             o, r, d, ep_ret, ep_len, a = env.reset(), 0, False, 0, 0, np.array([0])
             
             if vistxt:
-                f = open(osp.join(gls.codes_root, 'vis', 'mode', scene_name, f'{n + 1}.txt'), 'w')
+                f = open(osp.join(gls.codes_root, 'vis', mode, scene_name, f'{n + 1}.txt'), 'w')
                 action_hist = []
                 cam = env.true_cam
                 for i in range(len(cam)):
@@ -257,11 +298,16 @@ def test(exp_name, num_episodes, cuda_idx, scene_name, seq_name, pretrained_mode
         print(f'{key}:\t{output[key]}')
 
     f.close()
+
     env.close()
+
+    #airsim
+    client.simSetVehiclePose(airsim.Pose(airsim.Vector3r(0, 0, 0), airsim.to_quaternion(0, 0, 0)), True)
 
 
 def load_policy(pretrained_model, env, net_type, cuda_idx, greedy_eval=False):
     print(f'Loading pretrained RL model from {pretrained_model}')
+    
     initial_model_state_dict = torch.load(pretrained_model, map_location=f'cuda:{cuda_idx}')['agent_state_dict']
 
     agent = PPOAgent(greedy_eval=greedy_eval, initial_model_state_dict=initial_model_state_dict,

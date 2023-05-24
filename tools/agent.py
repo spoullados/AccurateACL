@@ -24,6 +24,7 @@ class PPOAgent(CategoricalPgAgent):
     def step(self, observation, prev_action, prev_reward):
         action, agent_info = super().step(observation, prev_action, prev_reward)
         if self._mode == "eval" and self.greedy_eval:
+            #print(agent_info.dist_info.prob)
             action = torch.argmax(agent_info.dist_info.prob, dim=-1)
         return AgentStep(action=action, agent_info=agent_info)
 

@@ -1,8 +1,8 @@
-scene_names: I37#I41#I79#I105#I138#I150#I175#R44#U02#U10#Y13#Y22#C03#D01#I125
-seq_names: seq-50cm-60deg#seq-50cm-60deg#seq-50cm-60deg#seq-50cm-60deg#seq-50cm-60deg#seq-50cm-60deg#seq-50cm-60deg#seq-50cm-60deg#seq-50cm-60deg#seq-50cm-60deg#seq-50cm-60deg#seq-50cm-60deg#seq-50cm-60deg#seq-50cm-60deg#seq-50cm-60deg
+scene_names: C03#D01#D04#D05#D26#D27#D28#F01#F31#I31#I32#I37#I41#I43#I48#I79#I89#I105#I125#I131#I138#I150#I151#I168#I174#I175#R24#R44#U02#U10#W14#Y03#Y09#Y13#Y22
+seq_names: seq-50cm-60deg#seq-50cm-60deg#seq-50cm-60deg#seq-50cm-60deg#seq-50cm-60deg#seq-50cm-60deg#seq-50cm-60deg#seq-50cm-60deg#seq-50cm-60deg#seq-50cm-60deg#seq-50cm-60deg#seq-50cm-60deg#seq-50cm-60deg#seq-50cm-60deg#seq-50cm-60deg#seq-50cm-60deg#seq-50cm-60deg#seq-50cm-60deg#seq-50cm-60deg#seq-50cm-60deg#seq-50cm-60deg#seq-50cm-60deg#seq-50cm-60deg#seq-50cm-60deg#seq-50cm-60deg#seq-50cm-60deg#seq-50cm-60deg#seq-50cm-60deg#seq-50cm-60deg#seq-50cm-60deg#seq-50cm-60deg#seq-50cm-60deg#seq-50cm-60deg#seq-50cm-60deg#seq-50cm-60deg
 dynamic: False
-noise_std: 5
-step_size: 20
+noise_std: 0.05
+step_size: 0.2
 angle_size: 30
 success_reward: 0
 color_jitter: True
