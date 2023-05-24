@@ -3,6 +3,6 @@ from os.path import join
 
 
 
-data_root = '/local/Downloads/ACL-Synthetic'
+data_root = '/local/ACL-Synthetic'
 reloc_root = '/opt/relocalizer_codes/spaint'
-codes_root = '/local/Desktop/AccurateACL'
+codes_root = '/local/AccurateACL'
