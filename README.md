@@ -1,19 +1,4 @@
-# [ECCV 2022] Towards Accurate Active Camera Localization
-
-*[Qihang Fang](https://qhfang.github.io/), *[Yingda Yin](https://yd-yin.github.io/), †[Qingnan Fan](https://fqnchina.github.io/), [Fei Xia](https://fxia22.github.io/), [Siyan Dong](https://scholar.google.com/citations?user=vtZMhssAAAAJ&hl=en/), Sheng Wang, [Jue Wang](https://juewang725.github.io/), [Leonidas Guibas](http://geometry.stanford.edu/member/guibas/index.html), †[Baoquan Chen](http://cfcs.pku.edu.cn/baoquan/)
-
-*Equal contribution; ordered alphabetically | †Corresponding authors | [Video](https://youtu.be/pDMoZ6pjkkQ) | [arXiv](https://arxiv.org/abs/2012.04263)
-
-*Spyros Poullados 
-
-<p align="center">
-<img src="./images/turn_and_long.gif" alt="demonstration" width="85%">
-</p>
-<p align="center">
-<img src="./images/4sequences.gif" alt="demonstration" width="100%">
-</p>
-
-
+# Visualising and Analysing [ECCV 2022] Towards Accurate Active Camera Localization in Unreal Egnine using AirSim
 
 ## Installations
 
@@ -23,42 +8,15 @@ git clone https://github.com/qhFang/AccurateACL.git --recursive
 ```
 ### Unreal Engine
 
-In order to have the versatility to use unreal_airsim, UE 4.25 is the recommended version. For UE4 to be installed on Linux, you need to register with Epic Games, and build it from source. Please follow detailed instructions on their [website](https://docs.unrealengine.com/4.27/en-US/SharingAndReleasing/Linux/BeginnerLinuxDeveloper/SettingUpAnUnrealWorkflow/)to set everything up. If you plan to use only pre-compiled binaries as simulation worlds, this section can be omitted,
+For the versatility to use unreal_airsim, UE 4.25 is the recommended version. For UE4 to be installed on Linux, you need to register with Epic Games, and build it from source. Please follow detailed instructions on their [website](https://docs.unrealengine.com/4.27/en-US/SharingAndReleasing/Linux/BeginnerLinuxDeveloper/SettingUpAnUnrealWorkflow/) to set everything up. If you plan to use only pre-compiled binaries as simulation worlds, this section can be omitted,
 
 ### Airsim
 
-AirSim can be installed as done for unreal_airsim. Details can be found in the following link: https://github.com/ethz-asl/unreal_airsim
+AirSim can be installed as done for [unreal_airsim](https://github.com/ethz-asl/unreal_airsim).
 
 ## Dataset
-### ACL-Synthetic and ACL-Real
-<p>
-In the paper, we evaluate our algorithm on the ACL-Synthetic and ACL-Real datasets.
 
-<strong>Some virtualizations of ACL-Synthetic dataset</strong>
-<div align="center"><img src="./images/ACL-Synthetic.jpg" alt="demonstration" width="100%"></div>
-
-<strong>Some virtualizations of ACL-Real dataset</strong>
-<div align="center"><img src="./images/ACL-Real.jpg" alt="demonstration" width="100%"></div>
-
-The ACL-Synthetic and ACL-Real datasets can be downloaded <a href="https://drive.google.com/file/d/1OIKUeQDfdNuxwyTlXP3KpJyk4p-Nsyjn/view?usp=sharing">here</a>.
-</p>
-
-### ACL-Origin
-<p>
-We further collect 120 high-quality indoor scenes. For each scene, we provide a .max format file which contains 3D models for all the furnitures with textures, and lighting effects, shading, and other 3D design elements.
-
-<strong>Panorama example of ACL-Origin:</strong>
-<div align="center"><img src="./images/panorama.jpg" alt="demonstration" width="100%"></div>
-
-<strong>Rendering example of ACL-Origin:</strong>
-
-
-https://user-images.githubusercontent.com/25958029/208108052-d946b8d2-b430-40b1-a381-11ddda755378.mp4
-
-
-
-The ACL-Origin datasets can be downloaded <a href="https://1drv.ms/u/s!Al4DaYqDq4-33STwLq83BAwxM6j2?e=m29Glv">here</a>.
-</p>
+Detailed descriptions about the datasets and how they can be downloaded are provided in the [AccurateACL](https://github.com/qhFang/AccurateACL) repository.
 
 ## Passive localizer (random forest)
 
@@ -66,32 +24,31 @@ The docker image contains a proper environment for the random forest. Run the fo
 ```bash
 docker pull qihfang/spaint_python3.6.8_cuda10.0_torch1.9.0_spaint:v1.1
 ```
-Note: for those who want to compile from source, instructions can be found in the gitub repository for AccurateACL
+Note: for those who want to compile from source, instructions can be found in the gitub repository for [AccurateACL](https://github.com/qhFang/AccurateACL). The image also contains other necessary packages that can be installed from the requirements.txt file in the [AccurateACL](https://github.com/qhFang/AccurateACL) repository.
 
 ### Mount local directories and files to your container
-
-Change path/to/AccurateACL/ and /path/to/Dataset/ to the local directories in which AccurateACL is installed and the Dataset is downloaded.
 
 ```bash
 docker run --rm --runtime=nvidia --gpus all -it -v /path/to/AccurateACL/:/local/AccurateACL -v /path/to/Dataset/:/local/ACL-Synthetic qihfang/spaint_python3.6.8_cuda10.0_torch1.9.0_spaint:v1.1 bash
 ```
+Change path/to/AccurateACL/ and /path/to/Dataset/ to your local AccurateACL Dataset directories.
+
 Note: the above command assumes the ACL-Synthetic dataset is downloaded
 
 ### Install packages within container
 
-Navigate to AccurateACL directory.
-
 ```bash
+cd /local/AccurateACL
 pip install -r requirements.txt 
 ```
 
 #### Usage
 
-For the policy_test.py script to run successfully, the UE4 Editor must first be ran (instruction for how to do so can be found in the same link as that for the installation of UE4), and once the appropriate project is opened, the 'play' button should be pressed.
-
 ```bash
 python test/policy_test.py --exp-name=test --scene-name=C03 --seq-name=seq-50cm-60deg --net-type=uncertainty --env=EnvRelocUncertainty-v0 --ckpt=ckpt/pretrained_model.pkl --cfg=configs/test.yaml --cuda-idx=0 --vistxt
 ```
+For the policy_test.py script to run successfully, you must first [run the UE4Editor](https://docs.unrealengine.com/4.27/en-US/SharingAndReleasing/Linux/BeginnerLinuxDeveloper/SettingUpAnUnrealWorkflow/), open the appropriate project, and press the 'play' button. Details regarding the creation of the project and loading a scene follow.
+
 ## Loading scene into Unreal Engine
 
 The following video provides a concrete example of importing 3rd party environments in Unreal Engine for AirSim: https://www.youtube.com/watch?v=oR-LXzWENYg. A mesh can be imported for each of the scenes in the Dataset (for example: /ACL-Synthetic/C03/mesh/scene_mesh_lowres.obj). 
