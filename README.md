@@ -70,18 +70,18 @@ Note: for those who want to compile from source, instructions can be found in th
 
 ### Mount local directories and files to your container
 
-```bash
-docker run --rm --runtime=nvidia --gpus all -it -v /path/to/AccurateACL/:/local/AccurateACL -v /path/to/Dataset/:/local/Dataset qihfang/spaint_python3.6.8_cuda10.0_torch1.9.0_spaint:v1.1 bash
-```
+Change path/to/AccurateACL/ and /path/to/Dataset/ to the local directories in which AccurateACL is installed and the Dataset is downloaded.
 
-### Configure paths
-Please specify the paths in `global_setting.py` to your paths.
+```bash
+docker run --rm --runtime=nvidia --gpus all -it -v /path/to/AccurateACL/:/local/AccurateACL -v /path/to/Dataset/:/local/ACL-Synthetic qihfang/spaint_python3.6.8_cuda10.0_torch1.9.0_spaint:v1.1 bash
+```
+Note: the above command assumes the ACL-Synthetic dataset is downloaded
 
 ### Install packages within container
 
 Within the AccurateACL directory mounted in the container:
 ```bash
-pip  install -e extensions/gym-foo -e extensions/rlpyt msgpack-rpc-python 
+pip install -r requirements.txt 
 ```
 ## Loading scene into Unreal Engine
 
