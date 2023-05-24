@@ -71,7 +71,7 @@ Note: for those who want to compile from source, instructions can be found in th
 ### Mount local directories and files to your container
 
 ```bash
-docker run --rm --runtime=nvidia --gpus all -it -v /local/home/spoullados/Desktop/:/local/Desktop -v /local/home/spoullados/Downloads/:/local/Downloads qihfang/spaint_python3.6.8_cuda10.0_torch1.9.0_spaint:v1.1 bash
+docker run --rm --runtime=nvidia --gpus all -it -v /path/to/AccurateACL/:/local/AccurateACL -v /path/to/Dataset/:/local/Dataset qihfang/spaint_python3.6.8_cuda10.0_torch1.9.0_spaint:v1.1 bash
 ```
 
 ### Configure paths
