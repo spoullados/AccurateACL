@@ -15,14 +15,51 @@
 
 
 
-## Installation
+## Installations
+
+### Accurate ACL
 ```bash
 git clone https://github.com/qhFang/AccurateACL.git --recursive
 ```
-### Requirements
-```bash
-pip install -r requirements.txt
-```
+### Unreal Engine
+
+In order to have the versatility to use unreal_airsim, UE 4.25 is the recommended version. For UE4 to be installed on Linux, you need to register with Epic Games, and build it from source. Please follow detailed instructions on their website (https://docs.unrealengine.com/4.27/en-US/SharingAndReleasing/Linux/BeginnerLinuxDeveloper/SettingUpAnUnrealWorkflow/) to set everything up. If you plan to use only pre-compiled binaries as simulation worlds, this section can be omitted,
+
+### Airsim
+
+AirSim can be installed as done for unreal_airsim. Details can be found in the following link: https://github.com/ethz-asl/unreal_airsim
+
+### Dataset
+#### ACL-Synthetic and ACL-Real
+<p>
+In the paper, we evaluate our algorithm on the ACL-Synthetic and ACL-Real datasets.
+
+<strong>Some virtualizations of ACL-Synthetic dataset</strong>
+<div align="center"><img src="./images/ACL-Synthetic.jpg" alt="demonstration" width="100%"></div>
+
+<strong>Some virtualizations of ACL-Real dataset</strong>
+<div align="center"><img src="./images/ACL-Real.jpg" alt="demonstration" width="100%"></div>
+
+The ACL-Synthetic and ACL-Real datasets can be downloaded <a href="https://drive.google.com/file/d/1OIKUeQDfdNuxwyTlXP3KpJyk4p-Nsyjn/view?usp=sharing">here</a>.
+</p>
+
+#### ACL-Origin
+<p>
+We further collect 120 high-quality indoor scenes. For each scene, we provide a .max format file which contains 3D models for all the furnitures with textures, and lighting effects, shading, and other 3D design elements.
+
+<strong>Panorama example of ACL-Origin:</strong>
+<div align="center"><img src="./images/panorama.jpg" alt="demonstration" width="100%"></div>
+
+<strong>Rendering example of ACL-Origin:</strong>
+
+
+https://user-images.githubusercontent.com/25958029/208108052-d946b8d2-b430-40b1-a381-11ddda755378.mp4
+
+
+
+The ACL-Origin datasets can be downloaded <a href="https://1drv.ms/u/s!Al4DaYqDq4-33STwLq83BAwxM6j2?e=m29Glv">here</a>.
+</p>
+
 ### Passive localizer (random forest)
 #### From docker image
 The docker image contains a proper environment for the random forest. Run the following command to use the image.
@@ -110,38 +147,6 @@ docker pull qihfang/spaint_python3.6.8_cuda10.0_torch1.9.0_spaint:v1.0
 
 ### Config paths
 Please specify the paths in `global_setting.py` to your paths.
-
-## Dataset
-### ACL-Synthetic and ACL-Real
-<p>
-In the paper, we evaluate our algorithm on the ACL-Synthetic and ACL-Real datasets.
-
-<strong>Some virtualizations of ACL-Synthetic dataset</strong>
-<div align="center"><img src="./images/ACL-Synthetic.jpg" alt="demonstration" width="100%"></div>
-
-<strong>Some virtualizations of ACL-Real dataset</strong>
-<div align="center"><img src="./images/ACL-Real.jpg" alt="demonstration" width="100%"></div>
-
-The ACL-Synthetic and ACL-Real datasets can be downloaded <a href="https://drive.google.com/file/d/1OIKUeQDfdNuxwyTlXP3KpJyk4p-Nsyjn/view?usp=sharing">here</a>.
-</p>
-
-### ACL-Origin
-<p>
-We further collect 120 high-quality indoor scenes. For each scene, we provide a .max format file which contains 3D models for all the furnitures with textures, and lighting effects, shading, and other 3D design elements.
-
-<strong>Panorama example of ACL-Origin:</strong>
-<div align="center"><img src="./images/panorama.jpg" alt="demonstration" width="100%"></div>
-
-<strong>Rendering example of ACL-Origin:</strong>
-
-
-https://user-images.githubusercontent.com/25958029/208108052-d946b8d2-b430-40b1-a381-11ddda755378.mp4
-
-
-
-The ACL-Origin datasets can be downloaded <a href="https://1drv.ms/u/s!Al4DaYqDq4-33STwLq83BAwxM6j2?e=m29Glv">here</a>.
-</p>
-
 
 
 ## Usage
