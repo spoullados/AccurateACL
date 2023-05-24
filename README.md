@@ -79,7 +79,8 @@ Note: the above command assumes the ACL-Synthetic dataset is downloaded
 
 ### Install packages within container
 
-Within the AccurateACL directory mounted in the container:
+Navigate to AccurateACL directory.
+
 ```bash
 pip install -r requirements.txt 
 ```
