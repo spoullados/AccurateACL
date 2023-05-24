@@ -84,23 +84,21 @@ Navigate to AccurateACL directory.
 ```bash
 pip install -r requirements.txt 
 ```
+
+#### Usage
+
+For the policy_test.py script to run successfully, the UE4 Editor must first be ran (instruction for how to do so can be found in the same link as that for the installation of UE4), and once the appropriate project is opened, the 'play' button should be pressed.
+
+```bash
+python test/policy_test.py --exp-name=test --scene-name=C03 --seq-name=seq-50cm-60deg --net-type=uncertainty --env=EnvRelocUncertainty-v0 --ckpt=ckpt/pretrained_model.pkl --cfg=configs/test.yaml --cuda-idx=0 --vistxt
+```
 ## Loading scene into Unreal Engine
 
-## Usage
-### Train
-```bash
-python train/trainer.py --exp_name=training --env=EnvRelocUncertainty-v0 --net_type=uncertainty \
---snapshot_mode=all --batch_B=5 --batch_T=800 --batch_nn=40 --gpu=0 --gpu_cpp=1 --gpu_render=1 \
---cfg=configs/train.yaml
-```
-### Test
+The following video provides a concrete example of importing 3rd party environments in Unreal Engine for AirSim: https://www.youtube.com/watch?v=oR-LXzWENYg. A mesh can be imported for each of the scenes in the Dataset (for example: /ACL-Synthetic/C03/mesh/scene_mesh_lowres.obj). 
 
-```bash
-python test/policy_test.py \ 
---exp-name=test --scene-name=I43 --seq-name=seq-50cm-60deg \
---net-type=uncertainty --env=EnvRelocUncertainty-v0 --ckpt=ckpt/pretrained_model.pkl \
---cfg=configs/test.yaml --cuda-idx=0
-```
+### Scene scaling and coordinate system alignment
+
+The scene should be scaled by 100 along each axis, and the transformation variables (translation and rotation) should be set to 0. This should lead to the global coordinate system in UE4 and the local coordinate system attached to the imported mesh coinciding in position. Unreal Engine uses a left handed coordinate system, and AirSim along with AccurateACL use a right handed coordinate system. Additionally, these three coordinate systems are rotated relative to eachother and rotations are expressed in different ways for each. Accommodations for these differences were made in the code. Additionally, the above scaling will lead to 1 unit in Unreal Engine corresponding to 1 meter - the units AccurateACL uses. 
 
 ## Bibtex
 ```bibtex
